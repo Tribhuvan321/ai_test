@@ -12,6 +12,10 @@ public class Spawner : MonoBehaviour
 
     private float timer = 0f;
 
+    // Enforce exactly 3 spawned enemies
+    private const int MaxEnemies = 3;
+    private int currentSpawned = 0;
+
     void Start()
     {
 
@@ -34,6 +38,10 @@ public class Spawner : MonoBehaviour
 
     public void SpawnGhost()
     {
+        // Do not spawn if we've already reached the maximum
+        if (currentSpawned >= MaxEnemies)
+            return;
+
         MRUKRoom room = MRUK.Instance.GetCurrentRoom();
         int currentTry = 0;
 
@@ -52,11 +60,40 @@ public class Spawner : MonoBehaviour
                 Vector3 randomPositionNormalOffset = pos + norm * normalOffset;
                 randomPositionNormalOffset.y = 0f;
 
-                Instantiate(prefabToSpawn, randomPositionNormalOffset, Quaternion.identity);
+                GameObject go = Instantiate(prefabToSpawn, randomPositionNormalOffset, Quaternion.identity);
+
+                // Track the spawned instance so we can decrement count when it's destroyed
+                var tracker = go.AddComponent<SpawnedTracker>();
+                tracker.Initialize(this);
+
+                currentSpawned++;
                 return;
             }
 
             currentTry++;
+        }
+    }
+
+    // Called by SpawnedTracker when a spawned instance is destroyed
+    internal void OnSpawnedDestroyed()
+    {
+        currentSpawned = Mathf.Max(0, currentSpawned - 1);
+    }
+
+    // Helper MonoBehaviour attached to each spawned instance to notify the spawner when it is destroyed
+    private class SpawnedTracker : MonoBehaviour
+    {
+        private Spawner owner;
+
+        public void Initialize(Spawner owner)
+        {
+            this.owner = owner;
+        }
+
+        void OnDestroy()
+        {
+            if (owner != null)
+                owner.OnSpawnedDestroyed();
         }
     }
 }

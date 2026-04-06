@@ -1,4 +1,5 @@
 using UnityEngine;
+using Tribhuvan_AI;
 
 namespace Tribhuvan_AI
 {
